@@ -1,10 +1,42 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 import json
+import os
 import urllib.request
 
 app = Flask(__name__)
 CORS(app)
+
+# #region debug-point A:report-helper
+def _debug_report(hypothesis_id, location, msg, data):
+    try:
+        urllib.request.urlopen(
+            urllib.request.Request(
+                "http://127.0.0.1:7778/event",
+                data=json.dumps(
+                    {
+                        "sessionId": "nixpacks-start-command",
+                        "runId": "pre-fix",
+                        "hypothesisId": hypothesis_id,
+                        "location": location,
+                        "msg": msg,
+                        "data": data,
+                    }
+                ).encode(),
+                headers={"Content-Type": "application/json"},
+            )
+        ).read()
+    except Exception:
+        pass
+
+
+_debug_report(
+    "A",
+    "backend/app.py:module-load",
+    "[DEBUG] backend module loaded",
+    {"port_env": os.getenv("PORT"), "cwd": os.getcwd()},
+)
+# #endregion
 
 EMPLOYEES = [
     {
@@ -44,11 +76,16 @@ EMPLOYEES = [
 
 @app.get("/api/employees")
 def get_employees():
-    # #region debug-point A:backend-route
-    urllib.request.urlopen(urllib.request.Request("http://127.0.0.1:7777/event", data=json.dumps({"sessionId":"ui-not-working","runId":"pre-fix","hypothesisId":"A","location":"backend/app.py:get_employees","msg":"[DEBUG] backend employees route hit","data":{"count":len(EMPLOYEES)},"ts":0}).encode(), headers={"Content-Type":"application/json"})).read()
+    # #region debug-point B:route-hit
+    _debug_report(
+        "B",
+        "backend/app.py:get_employees",
+        "[DEBUG] backend employees route hit",
+        {"count": len(EMPLOYEES)},
+    )
     # #endregion
     return jsonify(EMPLOYEES)
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=4000)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "4000")))
